@@ -1,0 +1,68 @@
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: prod-tekton-petclinic-app
+  labels:
+    app: prod-tekton-petclinic-app
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: prod-tekton-petclinic-app
+  template:
+    metadata:
+      labels:
+        app: prod-tekton-petclinic-app
+    spec:
+      containers:
+      - name: prod-tekton-petclinic
+        image: ootomok/petclinic-app:f0b7e05df160a3c8c1f65e6ac7ce1dc9aa6fa952
+        livenessProbe:
+          httpGet:
+            path: /actuator/health
+            port: 8080
+          initialDelaySeconds: 30
+          periodSeconds: 15
+        readinessProbe:
+          httpGet:
+            path: /actuator/health
+            port: 8080
+          initialDelaySeconds: 30
+          periodSeconds: 15
+        ports:
+        - containerPort: 8080
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: prod-tekton-petclinic-svc
+  labels:
+    app: prod-tekton-petclinic-svc
+spec:
+  type: ClusterIP
+  selector:
+    app: prod-tekton-petclinic-app
+  ports:
+  - name: http
+    port: 8080
+    protocol: TCP
+    targetPort: 8080
+---
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: prod-tekton-petclinic-ingress
+spec:
+  rules:
+  - host: user08-prod-tekton-petclinic.internal.k8slabhpe.net
+    http:
+      paths:
+      - path: /
+        pathType: Prefix
+        backend:
+          service:
+            name: prod-tekton-petclinic-svc
+            port:
+              number: 8080
+  ingressClassName: nginx
